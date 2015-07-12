@@ -13,9 +13,9 @@ while [[ $# -ne 0 ]]; do
         --firefox)
             browser=firefox
             ;;
-        --chrome)
-            browser=chrome
-            ;;
+#        --chrome)
+#            browser=chrome
+#            ;;
         --log=)
             logfile=${0:6}
             ;;

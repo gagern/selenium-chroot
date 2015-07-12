@@ -1,6 +1,7 @@
 #!/bin/bash
 
-browsers="firefox chrome"
+#browsers="firefox chrome"
+browsers="firefox"
 perBrowser=(
     opt/selenium/config.json
     var/cache/fontconfig
@@ -115,6 +116,7 @@ mkdir etc/selenium-chroot
 for i in "${perBrowser[@]}"; do
     printf '%s\n' "${i}" >> etc/selenium-chroot/perBrowser.txt
 done
+touch etc/selenium-chroot/differing.tmp
 for i in "${differing[@]}"; do
     printf '%s\n' "${i}" >> etc/selenium-chroot/differing.tmp
 done
