@@ -64,7 +64,7 @@ while read -r i; do
     else
         rm -f "${i}"
     fi
-done < selenium-chroot/perBrowser.txt
+done < etc/selenium-chroot/perBrowser.txt
 popd >/dev/null
 "${chrootcmd[@]}" "${dir}" /opt/bin/entry_point.sh > "${logfile}" 2>&1 &
 pid=$!

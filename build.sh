@@ -8,13 +8,39 @@ perBrowser=(
     etc/ld.so.cache
 )
 differing=()
+if [[ -n "$1" ]]; then
+    tarball=$1
+    outdir=${1%.tar*}
+    case ${1##*.tar} in
+        "")
+            compression=""
+            ;;
+        .gz)
+            compression="z"
+            ;;
+        .bz2)
+            compression="j"
+            ;;
+        .xz)
+            compression="J"
+            ;;
+        *)
+            echo "Unknown compression." 2>&1
+            exit 2
+            ;;
+    esac
+else
+    outdir=selenium-chroot
+    tarball=${outdir}.tar.gz
+    compression=z
+fi
 
 set -e
 olfIFS=${IFS}
 topdir=${PWD}
 shopt -s dotglob
-rm -rf selenium-all
-mkdir selenium-all
+rm -rf "${outdir}"
+mkdir "${outdir}"
 
 echo "Building fakechroot"
 if [[ ! -d fakechroot ]]; then
@@ -28,9 +54,9 @@ if [[ ! -e Makefile ]]; then
     ./configure --prefix=/ --enable-shared --disable-static
 fi
 make
-make DESTDIR="${topdir}/selenium-all" install
+make DESTDIR="${topdir}/${outdir}" install
 cd ..
-mv selenium-all/sbin/* selenium-all/bin/
+mv "${outdir}"/sbin/* "${outdir}"/bin/
 
 for browser in ${browsers}; do
 
@@ -58,18 +84,18 @@ for browser in ${browsers}; do
     rm -rf -- "${differing[@]}"
     cd ..
     IFS=$'\n'
-    newDiff=( $(diff -rq "selenium-${browser}" "selenium-all" 2>/dev/null \
+    newDiff=( $(diff -rq "selenium-${browser}" "${outdir}" 2>/dev/null \
                        | grep -v ^Only | cut -d\  -f2 | cut -d/ -f2-) )
     IFS=${oldIFS}
     rm -rf -- \
        "${newDiff[@]/#/selenium-${browser}\/}" \
-       "${newDiff[@]/#/selenium-all\/}"
+       "${newDiff[@]/#/${outdir}\/}"
     differing+=( "${newDiff[@]}" )
-    cp -a --link "selenium-${browser}"/* selenium-all/
+    cp -a --link "selenium-${browser}"/* "${outdir}"/
 done
 
 echo "Relativizing symlinks"
-find selenium-all -type l | while read -r i; do
+find "${outdir}" -type l | while read -r i; do
     dst=$(readlink "${i}")
     if [[ ${dst:0:1} != / ]]; then
         continue
@@ -82,22 +108,21 @@ find selenium-all -type l | while read -r i; do
 done
 
 echo "Finishing directory content"
-cp run.sh selenium-all/
-chmod a+x selenium-all/run.sh
-cd selenium-all
-mkdir selenium-chroot
+cp run.sh "${outdir}"/
+chmod a+x "${outdir}"/run.sh
+cd "${outdir}"
+mkdir etc/selenium-chroot
 for i in "${perBrowser[@]}"; do
-    printf '%s\n' "${i}" >> selenium-chroot/perBrowser.txt
+    printf '%s\n' "${i}" >> etc/selenium-chroot/perBrowser.txt
 done
 for i in "${differing[@]}"; do
-    printf '%s\n' "${i}" >> selenium-chroot/differing.tmp
+    printf '%s\n' "${i}" >> etc/selenium-chroot/differing.tmp
 done
-sort selenium-chroot/differing.tmp > selenium-chroot/differing.txt
-rm selenium-chroot/differing.tmp
+sort etc/selenium-chroot/differing.tmp > etc/selenium-chroot/differing.txt
+rm etc/selenium-chroot/differing.tmp
 cd ..
 
 echo "Compressing result"
-# TODO: use -J resp. xz compression for official releases
-tar czf selenium-all.tar.gz selenium-all
+tar c${compression}f "${tarball}" "${outdir}"
 
 echo "Done"
