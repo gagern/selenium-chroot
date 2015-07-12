@@ -1,10 +1,12 @@
+#!/bin/bash
+
 export SCREEN_WIDTH=1360 SCREEN_HEIGHT=1020 SCREEN_DEPTH=24 DISPLAY=:99.0
 export HOME=/home/seluser
 export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/mesa:/usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/jli
 
 browser=firefox
 logfile=/tmp/selenium.log
-chrootcmd="fakechroot chroot"
+chrootcmd=()
 cmd=()
 while [[ $# -ne 0 ]]; do
     case $1 in
@@ -18,7 +20,7 @@ while [[ $# -ne 0 ]]; do
             logfile=${0:6}
             ;;
         --chrootcmd=)
-            chrootcmd=${0:12}
+            chrootcmd=( ${0:12} )
             ;;
         -*)
             "Invalid option: $1" >&2
@@ -35,6 +37,15 @@ done
 set -e
 pushd $(dirname "$0") >/dev/null
 dir=$(pwd)
+if [[ ${#chrootcmd[@]} -eq 0 ]]; then  
+    chrootcmd=(
+        bash "${dir}/bin/fakechroot"
+        --lib "${dir}/lib/fakechroot/libfakechroot.so"
+        --config-dir "${dir}/etc/fakechroot"
+        --bindir "${dir}/bin"
+        chroot
+    )
+fi
 
 # Provide a symlink to self, to make fakechroot more reliable
 ddir=${dir#/}
@@ -55,13 +66,13 @@ while read -r i; do
     fi
 done < selenium-chroot/perBrowser.txt
 popd >/dev/null
-${chrootcmd} "${dir}" /opt/bin/entry_point.sh > "${logfile}" 2>&1 &
+"${chrootcmd[@]}" "${dir}" /opt/bin/entry_point.sh > "${logfile}" 2>&1 &
 pid=$!
 if [[ ${#cmd[@]} -eq 0 ]]; then
     echo ${pid}
 else
     "${cmd[@]}"
     res=$?
-    kill -s SIGTERM ${pid}
+    kill -s SIGTERM ${pid} || pkill java
     exit ${res}
 fi

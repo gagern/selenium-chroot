@@ -10,10 +10,28 @@ perBrowser=(
 differing=()
 
 set -e
-olfIFS=${IFS}    
+olfIFS=${IFS}
+topdir=${PWD}
 shopt -s dotglob
 rm -rf selenium-all
 mkdir selenium-all
+
+echo "Building fakechroot"
+if [[ ! -d fakechroot ]]; then
+    git submodule update --init fakechroot
+fi
+cd fakechroot
+if [[ ! -e configure ]]; then
+    ./autogen.sh
+fi
+if [[ ! -e Makefile ]]; then
+    ./configure --prefix=/ --enable-shared --disable-static
+fi
+make
+make DESTDIR="${topdir}/selenium-all" install
+cd ..
+mv selenium-all/sbin/* selenium-all/bin/
+
 for browser in ${browsers}; do
 
     if [[ ! -e "selenium-${browser}.tar" ]]; then

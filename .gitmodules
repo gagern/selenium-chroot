@@ -1,0 +1,3 @@
+[submodule "fakechroot"]
+	path = fakechroot
+	url = https://github.com/gagern/fakechroot.git
