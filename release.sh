@@ -9,7 +9,7 @@ if [[ $1 != indocker ]]; then
 fi
 mkdir /build
 cd /build
-cp -r /src/build.sh /src/run.sh /src/fakechroot .
+cp -r /src/{build,run,logpid}.sh /src/fakechroot .
 make -C fakechroot clean
 ln -s /src/selenium-*.tar .
 ./build.sh selenium-chroot-${2}.tar.xz

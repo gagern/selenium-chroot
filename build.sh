@@ -110,7 +110,8 @@ done
 
 echo "Finishing directory content"
 cp run.sh "${outdir}"/
-chmod a+x "${outdir}"/run.sh
+cp logpid.sh "${outdir}"/bin
+chmod a+x "${outdir}"/run.sh "${outdir}"/bin/logpid.sh
 cd "${outdir}"
 mkdir etc/selenium-chroot
 for i in "${perBrowser[@]}"; do

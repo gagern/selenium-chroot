@@ -1,6 +1,7 @@
 #!/bin/bash
 
-export SCREEN_WIDTH=1360 SCREEN_HEIGHT=1020 SCREEN_DEPTH=24 DISPLAY=:99.0
+export DISPLAY=:99.0
+export GEOMETRY="${SCREEN_WIDTH:-1360}x${SCREEN_HEIGHT:-1020}x${SCREEN_DEPTH:-24}"
 export HOME=/home/seluser
 export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/mesa:/usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/jli
 
@@ -65,14 +66,21 @@ while read -r i; do
         rm -f "${i}"
     fi
 done < etc/selenium-chroot/perBrowser.txt
+rm -f the.pid
+mkfifo the.pid
 popd >/dev/null
-"${chrootcmd[@]}" "${dir}" /opt/bin/entry_point.sh > "${logfile}" 2>&1 &
-pid=$!
+"${chrootcmd[@]}" "${dir}" /usr/bin/env \
+    xvfb-run --server-args="$DISPLAY -screen 0 $GEOMETRY -ac +extension RANDR" \
+    logpid.sh /the.pid \
+    java -jar /opt/selenium/selenium-server-standalone.jar \
+    > "${logfile}" 2>&1 &
+pid=$(< ${dir}/the.pid)
 if [[ ${#cmd[@]} -eq 0 ]]; then
-    echo ${pid}
+    echo "${pid}"
 else
+    trap "kill -s SIGTERM ${pid}" SIGTERM SIGINT
     "${cmd[@]}"
     res=$?
-    kill -s SIGTERM ${pid} || pkill java
+    kill -s SIGTERM "${pid}"
     exit ${res}
 fi
